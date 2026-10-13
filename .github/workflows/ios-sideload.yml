@@ -1,0 +1,53 @@
+name: Build sideload IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: |
+          brew install xcodegen
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+      - name: Build Rust iOS framework
+        run: bash apps/ios/build-xcframework.sh
+      - name: Generate model-free project
+        working-directory: apps/ios/OuraApp
+        run: xcodegen generate --spec project-ci.yml
+      - name: Build unsigned device app
+        working-directory: apps/ios/OuraApp
+        run: |
+          xcodebuild -project OuraApp.xcodeproj -scheme OuraApp \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' -derivedDataPath build/sideload \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM= \
+            build
+      - name: Package and check IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP=apps/ios/OuraApp/build/sideload/Build/Products/Release-iphoneos/OuraApp.app
+          test -x "$APP/OuraApp"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist"
+          lipo -verify_arch arm64 "$APP/OuraApp"
+          mkdir -p build/ipa/Payload
+          cp -R "$APP" build/ipa/Payload/
+          cd build/ipa
+          zip -qry OpenHealth-unsigned.ipa Payload
+          unzip -t OpenHealth-unsigned.ipa
+          shasum -a 256 OpenHealth-unsigned.ipa > OpenHealth-unsigned.ipa.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenHealth-unsigned-IPA
+          path: |
+            build/ipa/OpenHealth-unsigned.ipa
+            build/ipa/OpenHealth-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 14
