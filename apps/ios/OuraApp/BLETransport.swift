@@ -436,6 +436,11 @@ final class BLETransport: NSObject, RingTransport, CBCentralManagerDelegate, CBP
             if let error { dlog("ble", "notify ERROR on \(characteristic.uuid): \(error)"); closeOnQueue() }
             return
         }
+        // Keep history control replies even when low-level receive chatter is disabled.
+        // These contain counts/status only, never an auth key or raw health samples.
+        if v.first == 0x11 || (v.count >= 3 && v[0] == 0x2f && v[2] == 0x42) {
+            dlog("history-control", "\(v.count)B [\(characteristic.uuid.uuidString.prefix(8).lowercased())] \(v.prefix(12).hexString)")
+        }
         if Self.isHistoryPayload(v) {
             historyBuffer.append(v)
             historyFrames += 1
@@ -451,7 +456,7 @@ final class BLETransport: NSObject, RingTransport, CBCentralManagerDelegate, CBP
         // compact diagnostic line instead of tens of thousands of raw payload lines.
         flushHistoryPayload()
         if historyFrames > 0 {
-            dlog("recv", "history payload omitted; \(historyFrames) BLE frames, \(historyBytes)B")
+            dlog("history-control", "history payload omitted; \(historyFrames) BLE frames, \(historyBytes)B")
             historyFrames = 0
             historyBytes = 0
         }
