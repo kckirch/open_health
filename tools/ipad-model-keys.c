@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     OSStatus status = SecItemCopyMatching(q, &result);
     printf("Oura metadata query status: %d\n", (int)status);
     int saved = 0;
-    if (status == errSecSuccess && CFGetTypeID(result) == CFArrayGetTypeID()) {
+    if (status == errSecSuccess && result && CFGetTypeID(result) == CFArrayGetTypeID()) {
         CFArrayRef items = (CFArrayRef)result;
         printf("Oura records: %ld\n", (long)CFArrayGetCount(items));
         for (CFIndex i = 0; i < CFArrayGetCount(items); i++) {
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
                 CFIndex size = CFDataGetLength(data);
                 char path[1024];
                 int n = snprintf(path, sizeof(path), "%s/model-key-%d.bin", argv[2], saved);
-                if (size > 0 && size <= 4096 && n > 0 && n < sizeof(path)) {
+                if (size > 0 && size <= 4096 && n > 0 && (size_t)n < sizeof(path)) {
                     int fd = open(path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
                     if (fd >= 0) {
                         const UInt8 *bytes = CFDataGetBytePtr(data);
