@@ -442,6 +442,9 @@ final class BLETransport: NSObject, RingTransport, CBCentralManagerDelegate, CBP
             dlog("history-control", "\(v.count)B [\(characteristic.uuid.uuidString.prefix(8).lowercased())] \(v.prefix(12).hexString)")
         }
         if Self.isHistoryPayload(v) {
+            if historyFrames == 0 {
+                dlog("history-control", "first payload frame \(v.count)B [\(characteristic.uuid.uuidString.prefix(8).lowercased())] prefix=\(v.prefix(16).hexString)")
+            }
             historyBuffer.append(v)
             historyFrames += 1
             historyBytes += v.count
