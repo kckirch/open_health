@@ -25,7 +25,9 @@ jobs:
           brew install xcodegen
           rustup target add aarch64-apple-ios aarch64-apple-ios-sim
       - name: Build Rust iOS framework
-        run: bash apps/ios/build-xcframework.sh
+        run: |
+          cargo test --locked -p oura-link --no-default-features
+          bash apps/ios/build-xcframework.sh
       - name: Generate model-free project
         working-directory: apps/ios/OuraApp
         run: xcodegen generate --spec project-ci.yml
