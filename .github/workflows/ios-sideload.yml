@@ -26,7 +26,7 @@ jobs:
           rustup target add aarch64-apple-ios aarch64-apple-ios-sim
       - name: Build Rust iOS framework
         run: |
-          cargo test --locked -p oura-link --no-default-features
+          cargo test --locked -p oura-link --no-default-features --lib
           bash apps/ios/build-xcframework.sh
       - name: Generate model-free project
         working-directory: apps/ios/OuraApp
